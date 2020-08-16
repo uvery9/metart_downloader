@@ -2,6 +2,8 @@ import urllib.request
 import re
 import os
 import time
+import requests
+import hashlib
 # from bs4 import BeautifulSoup
 
 class Spider:
@@ -15,11 +17,19 @@ class Spider:
         self.model = None
         self.path = path
         self.try_again = True
+        self.contents_file = None
         # req.add_header("Host","blog.csdn.net")
         # req.add_header("Referer","http://blog.csdn.net/")
 
     def getPage(self):
-        start = time.time()
+        url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
+        contents_file = self.path + url_hash + '.txt'
+        self.contents_file = contents_file
+        print(contents_file)
+        if os.path.exists(contents_file):
+            print("RETRY")
+            with open(contents_file, 'r', encoding='utf-8') as f:
+                return f.read()
         request = urllib.request.Request(self.url, headers=self.headers)
         try:
             response = urllib.request.urlopen(request)
@@ -30,15 +40,18 @@ class Spider:
             print(e)
             return None
         else:
-            end = time.time()
-            # print("getPage run time[%d]:%.2fs" % (len(contents), end-start))
-            return contents.decode("utf-8")
+            ret = contents.decode("utf-8")
+            if (re.findall(r'<div class="preview-images">.*alt=""/>', ret, re.IGNORECASE)):
+                with open(contents_file, 'w', encoding='utf-8') as f:
+                    f.write(ret)
+            return ret
 
     def getContents(self):
         page = self.getPage()
         # print(page)
         # pattern = re.compile('''<div.*?class='num_1'.*?>.*?<p>.*?<a.*?href='.*?'.*?target='_blank'.*?title='(.*?)'.*?><img.*?src2="(.*?)".*?>.*?</a>.*?</p>.*?</div>''', re.S)
         items = re.findall(r'<div class="preview-images">.*alt=""/>', page, re.IGNORECASE)
+
         model_name = re.findall(r'<a href="[^"]+">([\w| ]+)</a>\.</p><div class="preview-images">', page)[0]
         # <a href="/model/melena-a">Melena A</a>
         # print(model_name)
@@ -109,7 +122,8 @@ class Spider:
         if count == 5:
             print("Path:  %s" % dl_path)
             print("All Download SUCCEED:%s!\n" % self.model)
-
+            if os.path.exists(self.contents_file):
+                os.remove(self.contents_file)
             if self.need_open:
                 self.opendir(dl_path)
             return True
@@ -398,7 +412,6 @@ class SpiderTiktok:
         return True
 
     def get_location(self, url):
-        import requests
         res = requests.post(url=url, headers=self.headers, allow_redirects=False)
         url = res.headers['location']
         return url
@@ -449,16 +462,16 @@ def main(urls):
     for url in urls:
         print("url:{}".format(url))
         if re.search(r"subscription/preview", url):
-            path = u"C:/__jaredfiles/_Erotic/metart/"
+            path = u"D:/jared/erotic/metart/"
             spider = Spider(url, path, need_open = opendir_flag)
         elif re.search(r'weixin', url, re.I):
-            path = u"C:/__jaredfiles/_Erotic/painting_art"
+            path = u"D:/jared/erotic/painting_art"
             spider = SpiderArt(url, path, opendir_flag)
         elif re.search(r'douyin', url, re.IGNORECASE) or re.search(r'xigua', url, re.I):
-            path = u"C:/__jaredfiles/tiktok"
+            path = u"D:/jared/tiktok"
             spider = SpiderTiktok(url, path, opendir_flag)
         else:
-            path = u"C:/__jaredfiles/_Erotic/metart_mp4"
+            path = u"D:/jared/erotic/metart_mp4"
             spider = SpiderMP4(url, path)
         spider.run()
 
@@ -470,11 +483,10 @@ if __name__ == '__main__':
 
 #'''
     urls = [
-'https://www.metart.com/subscription/preview/eNmIwOTgwNmJmNzVjZkRFQjJFNkEzM0Q3MkM0ODRGMUVFODBFMEEzMkMzNzkwRDZFNDM3RUUz/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2623355',
-'https://www.metart.com/subscription/preview/eOGFmMzUxM2M1OTI2NzdFQjNGRjcyQjVBOEYyMzQxMTI1QzcwREU5NTAzNjc2OTkzOTc4MEUz/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2623355',
-'https://www.metart.com/subscription/preview/eNWI5NWRmNzhjYzM1ZEYyODczMjNFMkM5MEY3QzRBOTVFNTYyQUVBQ0MzM0RFOTREMjI2Q0Y1/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2623355',
-'https://www.metart.com/subscription/preview/eMmQ4YTE2YWUyMTQyOThGNzgwODlFRjc5Qjc1MjQzOTU4QTlGREE4OUM2NDY5RUU2Nzk3ODk1/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2623355',
-'https://www.metart.com/subscription/preview/eZmZlZjI1Y2M3MGFkOTNBNjQ0QjRCRUJCRkQ3OTRDMTE1NDAyQ0JDMzc4NjgyOTkzOTc4MEUz/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2623355'
+
+'https://www.metart.com/subscription/preview/eOGFmMzUxM2M1OTI2NzZFNDQ2RDU5RDc2N0RDMDQ4MTREREY1NjU2Rjg2MTY2OTkzOTc4MEUz/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2623816'
+
+
 ]
     # url_set = get_urls(urls_str)
     main(urls)
