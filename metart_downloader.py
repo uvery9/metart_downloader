@@ -18,17 +18,14 @@ class Spider:
         self.path = path
         self.try_again = True
         self.contents_file = None
+        self.succeed_flag = None
         # req.add_header("Host","blog.csdn.net")
         # req.add_header("Referer","http://blog.csdn.net/")
 
     def getPage(self):
-        url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
-        contents_file = self.path + url_hash + '.txt'
-        self.contents_file = contents_file
-        print(contents_file)
-        if os.path.exists(contents_file):
+        if os.path.exists(self.contents_file):
             print("RETRY")
-            with open(contents_file, 'r', encoding='utf-8') as f:
+            with open(self.contents_file, 'r', encoding='utf-8') as f:
                 return f.read()
         request = urllib.request.Request(self.url, headers=self.headers)
         try:
@@ -42,7 +39,7 @@ class Spider:
         else:
             ret = contents.decode("utf-8")
             if (re.findall(r'<div class="preview-images">.*alt=""/>', ret, re.IGNORECASE)):
-                with open(contents_file, 'w', encoding='utf-8') as f:
+                with open(self.contents_file, 'w', encoding='utf-8') as f:
                     f.write(ret)
             return ret
 
@@ -107,6 +104,15 @@ class Spider:
             return True
 
     def analyzer(self):
+        url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
+        contents_file = self.path + url_hash + '.txt'
+        self.contents_file = contents_file
+        self.succeed_flag = self.path + url_hash + '-succeed.txt'
+        # print(self.contents_file)
+        if os.path.exists(self.succeed_flag):
+            with open(self.succeed_flag, 'r', encoding='utf-8') as f:
+                print(f.readline())
+            return True
         if not self.contents:
             self.getContents()
         contents = self.contents
@@ -121,11 +127,13 @@ class Spider:
                 count += 1
         if count == 5:
             print("Path:  %s" % dl_path)
-            print("All Download SUCCEED:%s!\n" % self.model)
+            print("All Download SUCCEED:  %s!\n" % self.model)
             if os.path.exists(self.contents_file):
                 os.remove(self.contents_file)
             if self.need_open:
                 self.opendir(dl_path)
+            with open(self.succeed_flag, 'w', encoding='utf-8') as f:
+                f.write("All Download SUCCEED:  %s!\n:\t%s " % (self.model, self.url))
             return True
         else:
             print("FAILED[%s]!Some imgs failed to download...\n" % self.model)
@@ -460,7 +468,7 @@ def main(urls):
     else:
         opendir_flag = False
     for url in urls:
-        print("url:{}".format(url))
+        print("[{}]:\t{}".format(urls.index(url), url))
         if re.search(r"subscription/preview", url):
             path = u"D:/jared/erotic/metart/"
             spider = Spider(url, path, need_open = opendir_flag)
@@ -484,11 +492,6 @@ if __name__ == '__main__':
 #'''
     urls = [
 
-'https://www.metart.com/subscription/preview/eOGFmMzUxM2M1OTI2NzZFNDQ2RDU5RDc2N0RDMDQ4MTREREY1NjU2Rjg2MTY2OTkzOTc4MEUz/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2623816'
-
-
 ]
     # url_set = get_urls(urls_str)
     main(urls)
-
-
