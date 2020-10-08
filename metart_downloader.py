@@ -103,7 +103,7 @@ class Spider:
             print("File EXISTS, skip: %s" % img_name)
             return True
 
-    def analyzer(self):
+    def run(self):
         url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
         contents_file = self.path + url_hash + '.txt'
         self.contents_file = contents_file
@@ -194,11 +194,6 @@ class Spider:
         path = path.replace('/', '\\')
         os.system("explorer.exe \"%s\"" % path)
 
-    def run(self):
-        self.analyzer()
-
-
-
 
 class SpiderMP4:
     def __init__(self, url, path):
@@ -225,7 +220,7 @@ class SpiderMP4:
             print("File EXISTS, skip: %s\n" % imagePath)
             return True
 
-    def analyzer(self):
+    def run(self):
         request = urllib.request.Request(self.url, headers = self.headers)
         response = urllib.request.urlopen(request)
         url_content = response.read().decode("UTF-8")
@@ -266,10 +261,6 @@ class SpiderMP4:
                     imgname = ret_one[0][:-4]+".jpg"
                     # print(imgname)
                     self.downImage(self.path, imgname, ret_one[1])
-
-    def run(self):
-        self.analyzer()
-
 
 class SpiderArt:
     def __init__(self, url, path, opendir_flag = False):
@@ -326,7 +317,7 @@ class SpiderArt:
             print("mkdir path: %s" % self.path)
         return True
 
-    def analyzer(self):
+    def run(self):
         request = urllib.request.Request(self.url, headers = self.headers)
         url_content = urllib.request.urlopen(self.url)
         response = urllib.request.urlopen(request)
@@ -355,8 +346,6 @@ class SpiderArt:
             if self.opendir_flag:
                 self.opendir()
 
-    def run(self):
-        self.analyzer()
 
 class SpiderTiktok:
     def __init__(self, url, path, opendir_flag = False):
@@ -424,7 +413,7 @@ class SpiderTiktok:
         url = res.headers['location']
         return url
 
-    def analyzer(self):
+    def run(self):
         self.url = self.get_location(self.url)
         # print(self.url)
         request = urllib.request.Request(self.url, headers = self.headers)
@@ -455,9 +444,6 @@ class SpiderTiktok:
             if self.opendir_flag:
                 self.opendir()
 
-    def run(self):
-        self.analyzer()
-
 def get_urls(tmp_str):
     # return set(re.findall(r'http[^\s]+', tmp_str, re.IGNORECASE))
     return set(re.findall(r'http[^\s]+', tmp_str, re.IGNORECASE))
@@ -483,22 +469,45 @@ def main(urls):
             spider = SpiderMP4(url, path)
         spider.run()
 
+# path
+def write_urls_to_txt(path = "./urls.txt"):
+    with open(path, 'w') as f:
+        for url in urls:
+            f.write(url + '\n')
 
+def read_urls_from_txt(path = "./urls.txt"):
+    urls = list()
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            urls_str = f.readlines()
+            for url in urls_str:
+                url = url.strip('\n')
+                urls.append(url)
+    else:
+        print("file doesn't exist:{}".format(path))
+        raise Exception("file doesn't exist")
+    return urls
 
+def clean_txt(path = 'D:\\jared\\erotic\\metart'):
+    print('clean start...')
+    dir = os.listdir(path)
+    for item in dir:
+        if item.endswith("succeed.txt"):
+            full_path = path + '\\' + item
+            if os.path.exists(full_path):
+                print("delete file: {}".format(full_path))
+                os.remove(full_path)
+    print('clean completed.')
 
 if __name__ == '__main__':
-    #urls_str = '''
 
-#'''
-    urls = [
+    need_clean = False
 
-        'https://www.metart.com/subscription/preview/eMWNlZGI2YTI4NmM3ZjY3MTRDRkQ3NTVCRTdEOTQxREQxOTE4Mjc1OERGOTJEQ0Y2MDkwMzM3/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2624652',
-        'https://www.metart.com/subscription/preview/eNWI5NWRmNzhjYzM1ZDA1ODgxNUYzMEEzQTZFOTRFOTBGMTFGN0EzMjBFQzA3RDZFNDM3RUUz/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2624652',
-        'https://www.metart.com/subscription/preview/eNTYxNDYxZDdkZTUxNkMxRUYzNUJBMjg3RkRBRTRDNTAyOEQ1M0ExQzA2NTk4OTREMjI2Q0Y1/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2624652',
-        'https://www.metart.com/subscription/preview/eYjkzOWEyNTA3MDRlOUJGRDVGM0ZGOTZFQjM1MDRDNUYzOTE3MzJENDNFMzEzQ0Y2MDkwMzM3/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2624652'
 
-    ]
-    # url_set = get_urls(urls_str)
+
+    if need_clean:
+        clean_txt(path = 'D:\\jared\\erotic\\metart')
+
+    urls = read_urls_from_txt('./urls.txt')
     main(urls)
-
 
