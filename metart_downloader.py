@@ -133,7 +133,7 @@ class Spider:
             if self.need_open:
                 self.opendir(dl_path)
             with open(self.succeed_flag, 'w', encoding='utf-8') as f:
-                f.write("All Download SUCCEED:  %s!\n:\t%s " % (self.model, self.url))
+                f.write("All Download SUCCEED:  %s \nurl:\t%s " % (dl_path.replace('/','\\'), self.url))
             return True
         else:
             print("FAILED[%s]!Some imgs failed to download...\n" % self.model)
@@ -468,10 +468,10 @@ def main(urls):
     else:
         opendir_flag = False
     for url in urls:
-        print("[{}]:\t{}".format(urls.index(url), url))
+        print("[{}]:\t{}".format(urls.index(url) + 1, url))
         if re.search(r"subscription/preview", url):
             path = u"D:/jared/erotic/metart/"
-            spider = Spider(url, path, need_open = opendir_flag)
+            spider = Spider(url, path, need_open = True)
         elif re.search(r'weixin', url, re.I):
             path = u"D:/jared/erotic/painting_art"
             spider = SpiderArt(url, path, opendir_flag)
@@ -492,6 +492,13 @@ if __name__ == '__main__':
 #'''
     urls = [
 
-]
+        'https://www.metart.com/subscription/preview/eMWNlZGI2YTI4NmM3ZjY3MTRDRkQ3NTVCRTdEOTQxREQxOTE4Mjc1OERGOTJEQ0Y2MDkwMzM3/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2624652',
+        'https://www.metart.com/subscription/preview/eNWI5NWRmNzhjYzM1ZDA1ODgxNUYzMEEzQTZFOTRFOTBGMTFGN0EzMjBFQzA3RDZFNDM3RUUz/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2624652',
+        'https://www.metart.com/subscription/preview/eNTYxNDYxZDdkZTUxNkMxRUYzNUJBMjg3RkRBRTRDNTAyOEQ1M0ExQzA2NTk4OTREMjI2Q0Y1/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2624652',
+        'https://www.metart.com/subscription/preview/eYjkzOWEyNTA3MDRlOUJGRDVGM0ZGOTZFQjM1MDRDNUYzOTE3MzJENDNFMzEzQ0Y2MDkwMzM3/?utm_source=newsletter&utm_medium=email&utm_campaign=Top10&CA=901313-0000&PA=2624652'
+
+    ]
     # url_set = get_urls(urls_str)
     main(urls)
+
+
