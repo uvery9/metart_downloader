@@ -448,6 +448,18 @@ def get_urls(tmp_str):
     # return set(re.findall(r'http[^\s]+', tmp_str, re.IGNORECASE))
     return set(re.findall(r'http[^\s]+', tmp_str, re.IGNORECASE))
 
+def change_drive(path):
+    # path = u"D:\\jared\\Pictures\\photo_of_the_day"
+    root = os.path.abspath(path)[:3]  # 获取当前目录所在硬盘的根目录
+    rest = os.path.abspath(path)[3:]
+    if not os.path.exists(root):
+        path = "C:\\" + rest
+        print("drive {} doesn't exist. \nUSE new path: {}".format(root, path))
+    if not os.path.exists(path):
+        os.makedirs(path)
+        print("mkdir path: %s" % path)
+    return path
+
 def main(urls):
     if len(urls) == 1:
         opendir_flag = True
@@ -457,15 +469,19 @@ def main(urls):
         print("[{}]:\t{}".format(urls.index(url) + 1, url))
         if re.search(r"subscription/preview", url):
             path = u"D:/jared/erotic/metart/"
+            path = change_drive(path)
             spider = Spider(url, path, need_open = True)
         elif re.search(r'weixin', url, re.I):
             path = u"D:/jared/erotic/painting_art"
+            path = change_drive(path)
             spider = SpiderArt(url, path, opendir_flag)
         elif re.search(r'douyin', url, re.IGNORECASE) or re.search(r'xigua', url, re.I):
             path = u"D:/jared/tiktok"
+            path = change_drive(path)
             spider = SpiderTiktok(url, path, opendir_flag)
         else:
             path = u"D:/jared/erotic/metart_mp4"
+            path = change_drive(path)
             spider = SpiderMP4(url, path)
         spider.run()
 
@@ -490,6 +506,7 @@ def read_urls_from_txt(path = "./urls.txt"):
 
 def clean_txt(path = 'D:\\jared\\erotic\\metart'):
     print('clean start...')
+    path = change_drive(path)
     dir = os.listdir(path)
     for item in dir:
         if item.endswith("succeed.txt"):
@@ -499,11 +516,10 @@ def clean_txt(path = 'D:\\jared\\erotic\\metart'):
                 os.remove(full_path)
     print('clean completed.')
 
+
 if __name__ == '__main__':
 
     need_clean = False
-
-
 
     if need_clean:
         clean_txt(path = 'D:\\jared\\erotic\\metart')
