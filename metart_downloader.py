@@ -516,14 +516,22 @@ def clean_txt(path = 'D:\\jared\\erotic\\metart'):
                 os.remove(full_path)
     print('clean completed.')
 
+def take_over_browser():
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+    chrome_options = Options()
+    #"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" - -remote - debugging - port = 9222 - -user - data - dir = "D:\jared\coding\edgedriver_win64\data-dir"
+    chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
+    chrome_driver = "D:\\jared\\coding\\chromedriver_win32\\chromedriver.exe"
+    driver = webdriver.Chrome(chrome_driver, options=chrome_options)
+    print(driver.current_url)
+    # driver.close()
+
 
 if __name__ == '__main__':
-
     need_clean = False
-
     if need_clean:
         clean_txt(path = 'D:\\jared\\erotic\\metart')
 
     urls = read_urls_from_txt('./urls.txt')
     main(urls)
-
