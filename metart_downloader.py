@@ -2,9 +2,17 @@ import urllib.request
 import re
 import os
 import time
-import requests
 import hashlib
 # from bs4 import BeautifulSoup
+
+def urllib_request_Request(url, port = 23333):
+    proxy_handler = urllib.request.ProxyHandler({
+        'http': 'http://127.0.0.1:' + str(port),
+        'https': 'https://127.0.0.1:' + str(port)
+    })
+    opener = urllib.request.build_opener(proxy_handler)
+    # print(response.read())
+    return opener.open(url)
 
 class Spider:
     def __init__(self, url, path, need_open = True):
@@ -27,9 +35,10 @@ class Spider:
             print("RETRY")
             with open(self.contents_file, 'r', encoding='utf-8') as f:
                 return f.read()
-        request = urllib.request.Request(self.url, headers=self.headers)
+        # request = urllib.request.Request(self.url, headers=self.headers)
         try:
-            response = urllib.request.urlopen(request)
+            # response = urllib.request.urlopen(request)
+            response = urllib_request_Request(self.url, 23333)
             # url_content = response.read().decode("UTF-8")
             # url_content_list = url_content.strip().splitlines()
             contents = response.read()
@@ -100,7 +109,7 @@ class Spider:
                 print("Download SUCCEED!! %s" % img_name)
                 return True
         else:
-            print("File EXISTS, skip: %s" % img_name)
+            print("File EXISTS, skip: %s" % img_name.replace('/', '\\'))
             return True
 
     def run(self):
@@ -217,12 +226,14 @@ class SpiderMP4:
                 print("Download SUCCEED: %s" %imagePath)
                 return True
         else:
-            print("File EXISTS, skip: %s\n" % imagePath)
+            print("File EXISTS, skip: %s\n" % imagePath.replace('/', '\\'))
             return True
 
     def run(self):
         request = urllib.request.Request(self.url, headers = self.headers)
-        response = urllib.request.urlopen(request)
+
+        # response = urllib.request.urlopen(request)
+        response = urllib_request_Request(self.url, 23333)
         url_content = response.read().decode("UTF-8")
         url_content_list = url_content.strip().splitlines()
 
@@ -409,6 +420,7 @@ class SpiderTiktok:
         return True
 
     def get_location(self, url):
+        import requests
         res = requests.post(url=url, headers=self.headers, allow_redirects=False)
         url = res.headers['location']
         return url
