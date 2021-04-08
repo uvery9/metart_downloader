@@ -3,6 +3,7 @@ import re
 import os
 import time
 import hashlib
+from threading import Thread
 # from bs4 import BeautifulSoup
 
 def urllib_request_Request(url, port = 23333):
@@ -664,30 +665,25 @@ def change_drive(path):
         print("mkdir path: %s" % path)
     return path
 
-def main(urls):
-    if len(urls) == 1:
-        opendir_flag = True
+def main(url, opendir_flag = True):
+    print("[{}]:\t{}".format(urls.index(url) + 1, url))
+    if re.search(r"subscription/preview", url):
+        path = u"D:/jared/erotic/metart/"
+        path = change_drive(path)
+        spider = SpiderDynamic(url, path, need_open = True)
+    elif re.search(r'weixin', url, re.I):
+        path = u"D:/jared/erotic/painting_art"
+        path = change_drive(path)
+        spider = SpiderArt(url, path, opendir_flag)
+    elif re.search(r'douyin', url, re.IGNORECASE) or re.search(r'xigua', url, re.I):
+        path = u"D:/jared/tiktok"
+        path = change_drive(path)
+        spider = SpiderTiktok(url, path, opendir_flag)
     else:
-        opendir_flag = False
-    for url in urls:
-        print("[{}]:\t{}".format(urls.index(url) + 1, url))
-        if re.search(r"subscription/preview", url):
-            path = u"D:/jared/erotic/metart/"
-            path = change_drive(path)
-            spider = SpiderDynamic(url, path, need_open = True)
-        elif re.search(r'weixin', url, re.I):
-            path = u"D:/jared/erotic/painting_art"
-            path = change_drive(path)
-            spider = SpiderArt(url, path, opendir_flag)
-        elif re.search(r'douyin', url, re.IGNORECASE) or re.search(r'xigua', url, re.I):
-            path = u"D:/jared/tiktok"
-            path = change_drive(path)
-            spider = SpiderTiktok(url, path, opendir_flag)
-        else:
-            path = u"D:/jared/erotic/metart_mp4"
-            path = change_drive(path)
-            spider = SpiderMP4(url, path)
-        spider.run()
+        path = u"D:/jared/erotic/metart_mp4"
+        path = change_drive(path)
+        spider = SpiderMP4(url, path)
+    spider.run()
 
 # path
 def write_urls_to_txt(path = "./urls.txt"):
@@ -731,10 +727,38 @@ def take_over_browser():
     print(driver.current_url)
     # driver.close()
 
+class DownThread(Thread):
+    def __init__(self, url):  # 可以通过初始化来传递参数
+        super(DownThread, self).__init__()
+        self.url = url
+
+    def run(self):
+        main(self.url)
+
+        
 
 if __name__ == '__main__':
+    
+    # 是否使用多线程
+    # use_thread = False
+    use_thread = True
+    
+    
     need_clean = False
     if need_clean:
         clean_txt(path = 'D:\\jared\\erotic\\metart')
     urls = read_urls_from_txt('./urls.txt')
-    main(urls)
+    if use_thread:
+        threads = list()
+        for url in urls:
+            if url:
+                t = DownThread(url)
+                threads.append(t)
+                t.start()  
+        for t in threads:
+            t.join()
+        print("全部结束.")
+    else:
+        for url in urls:
+            if url:
+                main(url)
