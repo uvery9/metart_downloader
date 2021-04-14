@@ -16,215 +16,24 @@ def urllib_request_Request(url, port = 23333):
     return opener.open(url)
 
 class Spider:
-    def __init__(self, url, path, need_open = True):
-        self.url = url
-        self.user_agent = "user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Mobile Safari/537.36 Edg/89.0.774.68"
-        self.headers = { "Referer" : self.url, "User-Agent":self.user_agent }
-        self.contents = None
-        self.time = 0.00
-        self.need_open = need_open
-        self.model = None
-        self.path = path
-        self.try_again = True
-        self.contents_file = None
-        self.succeed_flag = None
-        # req.add_header("Host","blog.csdn.net")
-        # req.add_header("Referer","http://blog.csdn.net/")
-
-    def getPage(self):
-        if os.path.exists(self.contents_file):
-            print("RETRY")
-            with open(self.contents_file, 'r', encoding='utf-8') as f:
-                return f.read()
-        # request = urllib.request.Request(self.url, headers=self.headers)
-        try:
-            # response = urllib.request.urlopen(request)
-            response = urllib_request_Request(self.url, 23333)
-            # url_content = response.read().decode("UTF-8")
-            # url_content_list = url_content.strip().splitlines()
-            contents = response.read()
-        except Exception as e:
-            print(e)
-            return None
-        else:
-            ret = contents.decode("utf-8")
-            if (re.findall(r'<div class="preview-images">.*alt=""/>', ret, re.IGNORECASE)):
-                with open(self.contents_file, 'w', encoding='utf-8') as f:
-                    f.write(ret)
-            return ret
-
-    def getContents(self):
-        page = self.getPage()
-        # print(page)
-        # pattern = re.compile('''<div.*?class='num_1'.*?>.*?<p>.*?<a.*?href='.*?'.*?target='_blank'.*?title='(.*?)'.*?><img.*?src2="(.*?)".*?>.*?</a>.*?</p>.*?</div>''', re.S)
-        from lxml import etree
-        # lxml: library to explain xml.
-        xpath_res = etree.HTML(page)
-        print(xpath_res.xpath('//*[@id="content"]/div[1]/div/div[3]/div[1]/div/div[1]/img[5]'))
-        
-        items = re.findall(r'<div class="preview-images">.*alt=""/>', page, re.IGNORECASE)
-
-        model_name = re.findall(r'<a href="[^"]+">([\w| ]+)</a>\.</p><div class="preview-images">', page)[0]
-        # <a href="/model/melena-a">Melena A</a>
-        # print(model_name)
-        # items = re.findall(r'<img src=.+" alt=""/>', page)
-        # print(items)
-        contents = list()
-        items_grp = re.findall(r'<img src="[^<]+"', items[0])
-        p= re.compile('.+?"(.+?)"')
-        for item in items_grp:
-            # print(item)
-            imgUrl = p.findall(item)
-            # print(imgUrl[0])
-            # re.search(r'<a.*>(.*)</a>',s).group(1)
-            filename = re.search(r'filename=(.+\.jpg)', imgUrl[0]).group(1)
-            # https://pcdn.metartnetwork.com/E6B595104E3411DF98790800200C9A66/media/9365AE2D434A1064E983A8629DECCB41/l_AA3CBBA100B18E84A197BC882E9B126D.jpg?filename=MetArt_Perfect-Art_Melena-A_low_0004.jpg&type=inline&ttl=1581770973&token=0767a19da53ac35caaf81fddaa06fcf6
-            # https://pcdn.metartnetwork.com/E6B595104E3411DF98790800200C9A66/media/9365AE2D434A1064E983A8629DECCB41/l_AA3CBBA100B18E84A197BC882E9B126D.jpg?filename=MetArt_Perfect-Art_Melena-A_low_0004.jpg&amp;type=inline&amp;ttl=1581770973&amp;token=0767a19da53ac35caaf81fddaa06fcf6
-            img_url = re.sub(r'&amp;', '&', imgUrl[0])
-            # print(img_url)
-            # file_size = self.getRemoteFileSize(img_url)
-            file = (model_name, filename , img_url)
-            # print(file)
-            contents.append(file)
-        self.contents = contents
-        return self.contents
-
-    def mkdir(self, path):
-        if os.path.exists(path):
-            # print("path exists: %s" % path)
-            pass
-        else:
-            os.makedirs(path)
-            print("mkdir path: %s" % path)
-
-    def downImage(self, path, img_name, imageUrl):
-        imagePath = path+u"/"+img_name
-        if not os.path.exists(imagePath):
-            try:
-                self.time = self.downloader_process(imageUrl, imagePath)
-                # self.downloader(imageUrl, imagePath)
-            except Exception as e:
-                print("Download FAILED: %s, %s" %(img_name, e))
-                if self.try_again:
-                    self.try_again = False
-                    print("try again!")
-                    self.downImage(path, img_name, imageUrl)
-                else:
-                     return False
-            else:
-                print("Download SUCCEED!! %s" % img_name)
-                return True
-        else:
-            print("File EXISTS, skip: %s" % img_name.replace('/', '\\'))
-            return True
-
-    def run(self):
-        url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
-        contents_file = self.path + url_hash + '.txt'
-        self.contents_file = contents_file
-        self.succeed_flag = self.path + url_hash + '-succeed.txt'
-        # print(self.contents_file)
-        if os.path.exists(self.succeed_flag):
-            with open(self.succeed_flag, 'r', encoding='utf-8') as f:
-                print(f.readline())
-            return True
-        if not self.contents:
-            self.getContents()
-        contents = self.contents
-        self.model = contents[0][0]
-        dl_path = self.path + self.model
-        self.mkdir(dl_path)
-        count = 0
-        for content in contents:
-            img_name = content[1]
-            img_url = content[2]
-            if self.downImage(dl_path, img_name, img_url):
-                count += 1
-        if count == 5:
-            print("Path:  %s" % dl_path)
-            print("All Download SUCCEED:  %s!\n" % self.model)
-            if os.path.exists(self.contents_file):
-                os.remove(self.contents_file)
-            if self.need_open:
-                self.opendir(dl_path)
-            with open(self.succeed_flag, 'w', encoding='utf-8') as f:
-                f.write("All Download SUCCEED:  %s \nurl:\t%s " % (dl_path.replace('/','\\'), self.url))
-            return True
-        else:
-            print("FAILED[%s]!Some imgs failed to download...\n" % self.model)
-            return False
-
-    @staticmethod
-    def callbackfunc(blocknum, blocksize, totalsize):
-        '''回调函数
-        @blocknum: 已经下载的数据块
-        @blocksize: 数据块的大小
-        @totalsize: 远程文件的大小
-        '''
-        percent = 100.0 * blocknum * blocksize / totalsize
-        if percent > 100:
-            percent = 100
-        # print("downloading %.2f%%" % percent)
-
-    def downloader(self, url, path):
-        start = time.time()
-        request = urllib.request.Request(url, headers = self.headers)
-        response = urllib.request.urlopen(request)
-        imageContents = response.read()
-        with open(path, 'wb') as f:
-            f.write(imageContents)
-        end = time.time()
-        print("Run Time:%.2fs" % (end-start))
-
-    def downloader_process(self, url, path):
-        start = time.time()
-        urllib.request.urlretrieve(url, path, self.callbackfunc)
-        end = time.time()
-        return end - start
-        # print("Run Time:%.2fs" % (end-start))
-
-    def getRemoteFileSize(self, url):
-        ''' 通过content-length头获取远程文件大小
-        url - 目标文件URL
-        proxy - 代理  '''
-        start = time.time()
-        opener = urllib.request.build_opener()
-        try:
-            request = urllib.request.Request(url)
-            request.get_method = lambda: 'HEAD'
-            response = opener.open(request)
-            response.read()
-        except Exception:
-            return 0
-        else:
-            # print(response.headers)
-            fileSize = dict(response.headers).get('Content-Length', 0)
-            end = time.time()
-            print("url:%d" % int(fileSize))
-            print("Run Time:%.2f秒" % (end-start))
-            return int(fileSize)
-
-    @staticmethod
-    def opendir(path):
-        path = path.replace('/', '\\')
-        os.system("explorer.exe \"%s\"" % path)
-
-class SpiderDynamic:
-    def __init__(self, url, path, need_open = True):
+    def __init__(self, url, path, black_list = None, need_open = True):
         self.url = url
         self.user_agent = "user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Mobile Safari/537.36 Edg/89.0.774.68"
         self.params = {'utm_source': 'newsletter',
                         'utm_medium': 'email',
                         'utm_campaign': 'Top10'}
         self.headers = { "Referer" : self.url, "User-Agent":self.user_agent }
-        self.contents = None
         self.time = 0.00
         self.need_open = need_open
         self.model = None
         self.path = path
         self.try_again = True
-        self.contents_file = None
-        self.succeed_flag = None
+        self._black_list = black_list
+        url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
+        self.contents_file = self.path + url_hash + '.txt'
+        self.succeed_flag = self.path + url_hash + '-succeed.txt'
+        self.skip_flag = self.path + url_hash + '-skip.txt'
+
         # req.add_header("Host","blog.csdn.net")
         # req.add_header("Referer","http://blog.csdn.net/")
 
@@ -274,8 +83,7 @@ class SpiderDynamic:
             file = (model_name, filename , img_url)
             # print(file)
             contents.append(file)
-        self.contents = contents
-        return self.contents
+        return contents
 
     def mkdir(self, path):
         if os.path.exists(path):
@@ -306,20 +114,42 @@ class SpiderDynamic:
             print("File EXISTS, skip: %s" % img_name.replace('/', '\\'))
             return True
 
-    def run(self):
-        url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
-        contents_file = self.path + url_hash + '.txt'
-        self.contents_file = contents_file
-        self.succeed_flag = self.path + url_hash + '-succeed.txt'
-        # print(self.contents_file)
+    def succeed_action(self, skip=False):
+        if skip:
+            user_defined_str = 'Skip the model'
+            if os.path.exists(self.contents_file):
+                os.remove(self.contents_file)
+            print("%s:  %s!\n" % (user_defined_str, self.model))
+            with open(self.skip_flag, 'w', encoding='utf-8') as f:
+                f.write("%s:  %s \nurl:\t%s " % (user_defined_str, self.model, self.url))
+        else:
+            dl_path = self.path + self.model
+            user_defined_str = 'All Download SUCCEED'
+            print("Path:  %s" % dl_path)       
+            print("%s:  %s!\n" % (user_defined_str, self.model))
+            if os.path.exists(self.contents_file):
+                os.remove(self.contents_file)
+            if self.need_open:
+                self.opendir(dl_path)
+            with open(self.succeed_flag, 'w', encoding='utf-8') as f:
+                f.write("%s:  %s \nurl:\t%s " % (user_defined_str, dl_path.replace('/','\\'), self.url))
+
+    def run(self):       
+        fi = None
         if os.path.exists(self.succeed_flag):
-            with open(self.succeed_flag, 'r', encoding='utf-8') as f:
+            fi = self.succeed_flag
+        elif os.path.exists(self.skip_flag):
+            fi = self.skip_flag
+        if fi:
+            with open(fi, 'r', encoding='utf-8') as f:
                 print(f.readline())
             return True
-        if not self.contents:
-            self.getContents()
-        contents = self.contents
+        
+        contents = self.getContents()
         self.model = contents[0][0]
+        if self.model in self._black_list:
+            self.succeed_action(skip=True)
+            return True
         dl_path = self.path + self.model
         self.mkdir(dl_path)
         count = 0
@@ -328,15 +158,8 @@ class SpiderDynamic:
             img_url = content[2]
             if self.downImage(dl_path, img_name, img_url):
                 count += 1
-        if count == 5:
-            print("Path:  %s" % dl_path)
-            print("All Download SUCCEED:  %s!\n" % self.model)
-            if os.path.exists(self.contents_file):
-                os.remove(self.contents_file)
-            if self.need_open:
-                self.opendir(dl_path)
-            with open(self.succeed_flag, 'w', encoding='utf-8') as f:
-                f.write("All Download SUCCEED:  %s \nurl:\t%s " % (dl_path.replace('/','\\'), self.url))
+        if count == len(contents):
+            self.succeed_action()
             return True
         else:
             print("FAILED[%s]!Some imgs failed to download...\n" % self.model)
@@ -665,12 +488,12 @@ def change_drive(path):
         print("mkdir path: %s" % path)
     return path
 
-def main(url, opendir_flag = True):
+def main(url, black_list, opendir_flag = True):
     print("[{}]:\t{}".format(urls.index(url) + 1, url))
     if re.search(r"subscription/preview", url):
         path = u"D:/jared/erotic/metart/"
         path = change_drive(path)
-        spider = SpiderDynamic(url, path, need_open = True)
+        spider = Spider(url, path, black_list, need_open = True)
     elif re.search(r'weixin', url, re.I):
         path = u"D:/jared/erotic/painting_art"
         path = change_drive(path)
@@ -685,24 +508,21 @@ def main(url, opendir_flag = True):
         spider = SpiderMP4(url, path)
     spider.run()
 
-# path
-def write_urls_to_txt(path = "./urls.txt"):
-    with open(path, 'w') as f:
-        for url in urls:
-            f.write(url + '\n')
 
-def read_urls_from_txt(path = "./urls.txt"):
-    urls = list()
+def get_list_from_txt(path = "./urls.txt"):
+    l = list()
     if os.path.exists(path):
         with open(path, 'r') as f:
-            urls_str = f.readlines()
-            for url in urls_str:
-                url = url.strip('\n')
-                urls.append(url)
+            list_str = f.readlines()
+            for item in list_str:
+                item = item.strip('\n')
+                if item:
+                    l.append(item)
     else:
         print("file doesn't exist:{}".format(path))
         raise Exception("file doesn't exist")
-    return urls
+    return l
+
 
 def clean_txt(path = 'D:\\jared\\erotic\\metart'):
     print('clean start...')
@@ -728,12 +548,13 @@ def take_over_browser():
     # driver.close()
 
 class DownThread(Thread):
-    def __init__(self, url):  # 可以通过初始化来传递参数
+    def __init__(self, url, black_list):  # 可以通过初始化来传递参数
         super(DownThread, self).__init__()
-        self.url = url
+        self._url = url
+        self._black_list = black_list
 
     def run(self):
-        main(self.url)
+        main(self._url, self._black_list)
 
         
 
@@ -747,18 +568,17 @@ if __name__ == '__main__':
     need_clean = False
     if need_clean:
         clean_txt(path = 'D:\\jared\\erotic\\metart')
-    urls = read_urls_from_txt('./urls.txt')
+    urls = get_list_from_txt('./urls.txt')
+    black_list = get_list_from_txt('./blacklist.txt')
     if use_thread:
         threads = list()
         for url in urls:
-            if url:
-                t = DownThread(url)
-                threads.append(t)
-                t.start()  
+            t = DownThread(url, black_list)
+            threads.append(t)
+            t.start()  
         for t in threads:
             t.join()
         print("全部结束.")
     else:
         for url in urls:
-            if url:
-                main(url)
+            main(url, black_list)
