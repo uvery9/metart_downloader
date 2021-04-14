@@ -264,9 +264,7 @@ class SpiderMP4:
         img_name = list()
         if mp4url:
             # https://assets.metartnetwork.com/movies/offer/Godessnudes_Promo_2019.mp4",
-            # print(mp4url)
             ret = re.findall(r"https://assets\.metartnetwork\.[^\.]+\.mp4", mp4url)
-            # print(ret)
             for ret_one in ret:
                 if ret_one:
                     print("Video Url:\t", ret_one)
