@@ -517,8 +517,9 @@ def get_list_from_txt(path = "./urls.txt"):
                 if item:
                     l.append(item)
     else:
-        print("file doesn't exist:{}".format(path))
-        raise Exception("file doesn't exist")
+        with open(path, 'w') as f:
+            f.write('')
+        print("file doesn't exist: [{0}] .\nBut create.".format(path))
     return l
 
 
