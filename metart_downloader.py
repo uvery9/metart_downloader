@@ -134,7 +134,7 @@ class Spider:
             with open(self.succeed_flag, 'w', encoding='utf-8') as f:
                 f.write("%s:  %s \nurl:\t%s " % (user_defined_str, dl_path.replace('/','\\'), self.url))
 
-    def run(self):       
+    def run(self):
         fi = None
         if os.path.exists(self.succeed_flag):
             fi = self.succeed_flag
@@ -142,7 +142,7 @@ class Spider:
             fi = self.skip_flag
         if fi:
             with open(fi, 'r', encoding='utf-8') as f:
-                print(f.readline())
+                print(f.readline().strip('\n'))
             return True
         
         contents = self.getContents()
