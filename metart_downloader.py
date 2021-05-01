@@ -508,18 +508,22 @@ def main(url, black_list, opendir_flag = True):
 
 
 def get_list_from_txt(path = "./urls.txt"):
-    l = list()
     if os.path.exists(path):
-        with open(path, 'r') as f:
-            list_str = f.readlines()
-            for item in list_str:
-                item = item.strip('\n')
-                if item:
-                    l.append(item)
+        pass
+    elif os.path.exists('../urls.txt'):
+        path = '../urls.txt'
     else:
         with open(path, 'w') as f:
             f.write('')
         print("file doesn't exist: [{0}] .\nBut create.".format(path))
+        return list()
+    l = list()
+    with open(path, 'r') as f:
+        list_str = f.readlines()
+        for item in list_str:
+            item = item.strip('\n')
+            if item:
+                l.append(item)
     return l
 
 
