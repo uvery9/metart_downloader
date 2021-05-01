@@ -24,6 +24,9 @@ rd /s /q __pycache__
 del /q metart_downloader.spec
 rd /s /q dist
 
+"C:\Program Files\7-Zip\7z.exe" a metart_downloader.7z Release
+move /y metart_downloader.7z Release\metart_downloader.7z
+
 echo "********************succeed********************"
 
 pause
