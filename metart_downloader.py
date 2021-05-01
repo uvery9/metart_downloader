@@ -16,7 +16,7 @@ def urllib_request_Request(url, port = 23333):
     return opener.open(url)
 
 class Spider:
-    def __init__(self, url, path, black_list = None, need_open = True):
+    def __init__(self, url, path, black_list = None, white_list = None, need_open = True):
         self.url = url
         self.user_agent = "user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Mobile Safari/537.36 Edg/89.0.774.68"
         self.params = {'utm_source': 'newsletter',
@@ -29,6 +29,7 @@ class Spider:
         self.path = path
         self.try_again = True
         self._black_list = black_list
+        self._white_list = white_list
         url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
         self.contents_file = self.path + url_hash + '.txt'
         self.succeed_flag = self.path + url_hash + '-succeed.txt'
@@ -150,6 +151,8 @@ class Spider:
         if self.model in self._black_list:
             self.succeed_action(skip=True)
             return True
+        if self.model in self._white_list:
+            self.model = "[" + self.model + "]"    
         dl_path = self.path + self.model
         self.mkdir(dl_path)
         count = 0
@@ -486,12 +489,12 @@ def change_drive(path):
         print("mkdir path: %s" % path)
     return path
 
-def main(url, black_list, opendir_flag = True):
+def main(url, black_list, white_list, opendir_flag = True):
     print("[{}]:\t{}".format(urls.index(url) + 1, url))
     if re.search(r"subscription/preview", url):
         path = u"D:/jared/erotic/metart/"
         path = change_drive(path)
-        spider = Spider(url, path, black_list, need_open = True)
+        spider = Spider(url, path, black_list, white_list, need_open = True)
     elif re.search(r'weixin', url, re.I):
         path = u"D:/jared/erotic/painting_art"
         path = change_drive(path)
@@ -507,24 +510,22 @@ def main(url, black_list, opendir_flag = True):
     spider.run()
 
 
-def get_list_from_txt(path = "./urls.txt"):
+def get_list_from_txt(path):
     if os.path.exists(path):
-        pass
-    elif os.path.exists('../urls.txt'):
-        path = '../urls.txt'
+        l = list()
+        with open(path, 'r') as f:
+            list_str = f.readlines()
+            for item in list_str:
+                item = item.strip('\n')
+                if item:
+                    l.append(item)
+        return l
     else:
         with open(path, 'w') as f:
             f.write('')
         print("file doesn't exist: [{0}] .\nBut create.".format(path))
         return list()
-    l = list()
-    with open(path, 'r') as f:
-        list_str = f.readlines()
-        for item in list_str:
-            item = item.strip('\n')
-            if item:
-                l.append(item)
-    return l
+    
 
 
 def clean_txt(path = 'D:\\jared\\erotic\\metart'):
@@ -551,13 +552,14 @@ def take_over_browser():
     # driver.close()
 
 class DownThread(Thread):
-    def __init__(self, url, black_list):  # 可以通过初始化来传递参数
+    def __init__(self, url, black_list, white_list):  # 可以通过初始化来传递参数
         super(DownThread, self).__init__()
         self._url = url
         self._black_list = black_list
+        self._white_list = white_list
 
     def run(self):
-        main(self._url, self._black_list)
+        main(self._url, self._black_list, self._white_list)
 
         
 
@@ -571,12 +573,13 @@ if __name__ == '__main__':
     need_clean = False
     if need_clean:
         clean_txt(path = 'D:\\jared\\erotic\\metart')
-    urls = get_list_from_txt('./urls.txt')
+    urls =       get_list_from_txt('./urls.txt')
     black_list = get_list_from_txt('./blacklist.txt')
+    white_list = get_list_from_txt('./whitelist.txt')
     if use_thread:
         threads = list()
         for url in urls:
-            t = DownThread(url, black_list)
+            t = DownThread(url, black_list, white_list)
             threads.append(t)
             t.start()  
         for t in threads:
@@ -584,4 +587,4 @@ if __name__ == '__main__':
         print("全部结束.")
     else:
         for url in urls:
-            main(url, black_list)
+            main(url, black_list, white_list)

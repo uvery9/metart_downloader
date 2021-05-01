@@ -2,6 +2,13 @@
 rd /s /q Release
 md Release
 
+echo "********************copy files********************"
+copy urls.txt       Release
+copy whitelist.txt  Release
+copy blacklist.txt  Release
+
+echo "********************build start********************"
+
 pyinstaller  -F -i metart.ico metart_downloader.py
 move /y dist\metart_downloader.exe Release\metart_downloader.exe
 
