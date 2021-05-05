@@ -518,6 +518,8 @@ def get_list_from_txt(path):
             for item in list_str:
                 item = item.strip('\n')
                 if item:
+                    item = item.split(' //', 1)[0]
+                    item = item.split(' //', 1)[0]
                     l.append(item)
         return l
     else:
