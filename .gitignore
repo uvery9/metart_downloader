@@ -2,6 +2,7 @@ urls.txt
 Release/*.txt
 Release/*.exe
 .vscode/*
+.idea/*
 
 # OUTPUT
 Release/*
