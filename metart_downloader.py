@@ -1,3 +1,4 @@
+from typing import Any
 import urllib.request
 import re
 import os
@@ -47,13 +48,19 @@ class Spider:
         try:
             import requests          
             #此处也可以通过列表形式，设置多个代理IP，后面通过random.choice()随机选取一个进行使用
-            proxies = {'http': 'http://127.0.0.1:23333', 
-                    'https': 'http://127.0.0.1:23333'} 
+            # proxies = {'http': 'http://127.0.0.1:23333', 
+            #         'https': 'http://127.0.0.1:23333'} 
+            # , 
+            import urllib
+            proxies = urllib.request.getproxies()
+            # print(proxies)
             json_url = re.findall('subscription/preview/(.*)/', self.url)[0]
             json_url = 'https://www.metart.com/api/subscription-preview/' + json_url
+            # print(json_url)
 
             self.url = json_url
-            response = requests.get(url=self.url, proxies=proxies, headers=self.headers) # params=self.params, 
+            # proxies=proxies, 
+            response = requests.get(url=self.url, headers=self.headers) # params=self.params, 
             # url_content_list = url_content.strip().splitlines()
             contents = response.text
         except Exception as e:
