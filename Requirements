@@ -1,0 +1,4 @@
+pyinstaller
+requests
+urllib3==1.25.11
+pyjson

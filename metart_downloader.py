@@ -485,7 +485,7 @@ def get_urls(tmp_str):
     return set(re.findall(r'http[^\s]+', tmp_str, re.IGNORECASE))
 
 def change_drive(path):
-    # path = u"D:\\jared\\Pictures\\photo_of_the_day"
+    # path = u"D:\\HDC\\Pictures\\photo_of_the_day"
     root = os.path.abspath(path)[:3]  # 获取当前目录所在硬盘的根目录
     rest = os.path.abspath(path)[3:]
     if not os.path.exists(root):
@@ -499,19 +499,19 @@ def change_drive(path):
 def main(url, black_list, white_list, opendir_flag = True):
     print("[{}]:\t{}".format(urls.index(url) + 1, url))
     if re.search(r"subscription/preview", url):
-        path = u"D:/jared/erotic/metart/"
+        path = u"D:/HDC/erotic/metart/"
         path = change_drive(path)
         spider = Spider(url, path, black_list, white_list, need_open = True)
     elif re.search(r'weixin', url, re.I):
-        path = u"D:/jared/erotic/painting_art"
+        path = u"D:/HDC/erotic/painting_art"
         path = change_drive(path)
         spider = SpiderArt(url, path, opendir_flag)
     elif re.search(r'douyin', url, re.IGNORECASE) or re.search(r'xigua', url, re.I):
-        path = u"D:/jared/tiktok"
+        path = u"D:/HDC/tiktok"
         path = change_drive(path)
         spider = SpiderTiktok(url, path, opendir_flag)
     else:
-        path = u"D:/jared/erotic/metart_mp4"
+        path = u"D:/HDC/erotic/metart_mp4"
         path = change_drive(path)
         spider = SpiderMP4(url, path)
     spider.run()
@@ -537,7 +537,7 @@ def get_list_from_txt(path):
     
 
 
-def clean_txt(path = 'D:\\jared\\erotic\\metart'):
+def clean_txt(path = 'D:\\HDC\\erotic\\metart'):
     print('clean start...')
     path = change_drive(path)
     dir = os.listdir(path)
@@ -553,9 +553,9 @@ def take_over_browser():
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
     chrome_options = Options()
-    #"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" - -remote - debugging - port = 9222 - -user - data - dir = "D:\jared\coding\edgedriver_win64\data-dir"
+    #"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" - -remote - debugging - port = 9222 - -user - data - dir = "D:\HDC\coding\edgedriver_win64\data-dir"
     chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
-    chrome_driver = "D:\\jared\\coding\\chromedriver_win32\\chromedriver.exe"
+    chrome_driver = "D:\\HDC\\coding\\chromedriver_win32\\chromedriver.exe"
     driver = webdriver.Chrome(chrome_driver, options=chrome_options)
     print(driver.current_url)
     # driver.close()
@@ -581,7 +581,7 @@ if __name__ == '__main__':
     
     need_clean = False
     if need_clean:
-        clean_txt(path = 'D:\\jared\\erotic\\metart')
+        clean_txt(path = 'D:\\HDC\\erotic\\metart')
     urls =       get_list_from_txt('./urls.txt')
     black_list = get_list_from_txt('./blacklist.txt')
     white_list = get_list_from_txt('./whitelist.txt')

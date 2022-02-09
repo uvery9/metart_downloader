@@ -9,6 +9,7 @@ copy blacklist.txt  Release
 
 echo "********************build start********************"
 
+pip install -r Requirements
 pyinstaller  -F -i metart.ico metart_downloader.py
 move /y dist\metart_downloader.exe Release\metart_downloader.exe
 
