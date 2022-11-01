@@ -7,7 +7,8 @@ import hashlib
 from threading import Thread
 # from bs4 import BeautifulSoup
 
-def urllib_request_Request(url, port = 23333):
+
+def urllib_request_Request(url, port=23333):
     proxy_handler = urllib.request.ProxyHandler({
         'http': 'http://127.0.0.1:' + str(port),
         'https': 'https://127.0.0.1:' + str(port)
@@ -16,19 +17,19 @@ def urllib_request_Request(url, port = 23333):
     # print(response.read())
     return opener.open(url)
 
+
 class Spider:
-    def __init__(self, url, path, black_list = None, white_list = None, need_open = True):
+    def __init__(self, url, path, black_list=None, white_list=None, need_open=True):
         self.url = url
         self.user_agent = "user-agent: Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.114 Mobile Safari/537.36 Edg/89.0.774.68"
         self.params = {'utm_source': 'newsletter',
-                        'utm_medium': 'email',
-                        'utm_campaign': 'Top10'}
-        self.headers = { "Referer" : self.url, "User-Agent":self.user_agent }
+                       'utm_medium': 'email',
+                       'utm_campaign': 'Top10'}
+        self.headers = {"Referer": self.url, "User-Agent": self.user_agent}
         self.time = 0.00
         self.need_open = need_open
         self.model = None
         self.path = path
-        self.try_again = True
         self._black_list = black_list
         self._white_list = white_list
         url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
@@ -46,11 +47,11 @@ class Spider:
                 return f.read()
         # request = urllib.request.Request(self.url, headers=self.headers)
         try:
-            import requests          
-            #此处也可以通过列表形式，设置多个代理IP，后面通过random.choice()随机选取一个进行使用
-            # proxies = {'http': 'http://127.0.0.1:23333', 
-            #         'https': 'http://127.0.0.1:23333'} 
-            # , 
+            import requests
+            # 此处也可以通过列表形式，设置多个代理IP，后面通过random.choice()随机选取一个进行使用
+            # proxies = {'http': 'http://127.0.0.1:23333',
+            #         'https': 'http://127.0.0.1:23333'}
+            # ,
             import urllib
             proxies = urllib.request.getproxies()
             # print(proxies)
@@ -59,8 +60,9 @@ class Spider:
             # print(json_url)
 
             self.url = json_url
-            # proxies=proxies, 
-            response = requests.get(url=self.url, headers=self.headers) # params=self.params, 
+            # proxies=proxies,
+            # params=self.params,
+            response = requests.get(url=self.url, headers=self.headers)
             # url_content_list = url_content.strip().splitlines()
             contents = response.text
         except Exception as e:
@@ -75,7 +77,6 @@ class Spider:
                 print("URL WRONG!")
                 return None
 
-
     def getContents(self):
         page = self.getPage()
         import json
@@ -88,7 +89,7 @@ class Spider:
             # https://pcdn.metartnetwork.com/E6B595104E3411DF98790800200C9A66/media/9365AE2D434A1064E983A8629DECCB41/l_AA3CBBA100B18E84A197BC882E9B126D.jpg?filename=MetArt_Perfect-Art_Melena-A_low_0004.jpg&type=inline&ttl=1581770973&token=0767a19da53ac35caaf81fddaa06fcf6
             # https://pcdn.metartnetwork.com/E6B595104E3411DF98790800200C9A66/media/9365AE2D434A1064E983A8629DECCB41/l_AA3CBBA100B18E84A197BC882E9B126D.jpg?filename=MetArt_Perfect-Art_Melena-A_low_0004.jpg&amp;type=inline&amp;ttl=1581770973&amp;token=0767a19da53ac35caaf81fddaa06fcf6
             img_url = re.sub(r'&amp;', '&', url)
-            file = (model_name, filename , img_url)
+            file = (model_name, filename, img_url)
             # print(file)
             contents.append(file)
         return contents
@@ -102,19 +103,15 @@ class Spider:
             print("mkdir path: %s" % path)
 
     def downImage(self, path, img_name, imageUrl):
-        imagePath = path+u"/"+img_name
+        imagePath = os.path.join(path, img_name)
         if not os.path.exists(imagePath):
             try:
                 self.time = self.downloader_process(imageUrl, imagePath)
                 # self.downloader(imageUrl, imagePath)
             except Exception as e:
-                print("Download FAILED: %s, %s" %(img_name, e))
-                if self.try_again:
-                    self.try_again = False
-                    print("try again!")
-                    self.downImage(path, img_name, imageUrl)
-                else:
-                     return False
+                print("Download FAILED: %s, %s" % (img_name, e))
+                os.remove(imagePath)
+                return False
             else:
                 print("Download SUCCEED!! %s" % img_name)
                 return True
@@ -129,18 +126,20 @@ class Spider:
                 os.remove(self.contents_file)
             print("%s:  %s!\n" % (user_defined_str, self.model))
             with open(self.skip_flag, 'w', encoding='utf-8') as f:
-                f.write("%s:  %s \nurl:\t%s " % (user_defined_str, self.model, self.url))
+                f.write("%s:  %s \nurl:\t%s " %
+                        (user_defined_str, self.model, self.url))
         else:
             dl_path = self.path + self.model
             user_defined_str = 'All Download SUCCEED'
-            print("Path:  %s" % dl_path)       
+            print("Path:  %s" % dl_path)
             print("%s:  %s!\n" % (user_defined_str, self.model))
             if os.path.exists(self.contents_file):
                 os.remove(self.contents_file)
             if self.need_open:
                 self.opendir(dl_path)
             with open(self.succeed_flag, 'w', encoding='utf-8') as f:
-                f.write("%s:  %s \nurl:\t%s " % (user_defined_str, dl_path.replace('/','\\'), self.url))
+                f.write("%s:  %s \nurl:\t%s " %
+                        (user_defined_str, dl_path.replace('/', '\\'), self.url))
 
     def run(self):
         fi = None
@@ -152,14 +151,14 @@ class Spider:
             with open(fi, 'r', encoding='utf-8') as f:
                 print(f.readline().strip('\n'))
             return True
-        
+
         contents = self.getContents()
         self.model = contents[0][0]
         if self.model in self._black_list:
             self.succeed_action(skip=True)
             return True
         if self.model in self._white_list:
-            self.model = "[" + self.model + "]"    
+            self.model = "[" + self.model + "]"
         dl_path = self.path + self.model
         self.mkdir(dl_path)
         count = 0
@@ -189,7 +188,7 @@ class Spider:
 
     def downloader(self, url, path):
         start = time.time()
-        request = urllib.request.Request(url, headers = self.headers)
+        request = urllib.request.Request(url, headers=self.headers)
         response = urllib.request.urlopen(request)
         imageContents = response.read()
         with open(path, 'wb') as f:
@@ -230,11 +229,12 @@ class Spider:
         path = path.replace('/', '\\')
         os.system("explorer.exe \"%s\"" % path)
 
+
 class SpiderMP4:
     def __init__(self, url, path):
         self.url = url
         self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36"
-        self.headers = { "Referer" : self.url, "User-Agent":self.user_agent}
+        self.headers = {"Referer": self.url, "User-Agent": self.user_agent}
         self.path = path
 
     def downImage(self, path, img_name, imageUrl):
@@ -246,17 +246,17 @@ class SpiderMP4:
             try:
                 urllib.request.urlretrieve(imageUrl, imagePath)
             except Exception as e:
-                print("Download FAILED:[%s] %s" %(img_name, e))
+                print("Download FAILED:[%s] %s" % (img_name, e))
                 return False
             else:
-                print("Download SUCCEED: %s" %imagePath)
+                print("Download SUCCEED: %s" % imagePath)
                 return True
         else:
             print("File EXISTS, skip: %s\n" % imagePath.replace('/', '\\'))
             return True
 
     def run(self):
-        request = urllib.request.Request(self.url, headers = self.headers)
+        request = urllib.request.Request(self.url, headers=self.headers)
 
         # response = urllib.request.urlopen(request)
         response = urllib_request_Request(self.url, 10809)
@@ -274,7 +274,8 @@ class SpiderMP4:
         img_name = list()
         if mp4url:
             # https://assets.metartnetwork.com/movies/offer/Godessnudes_Promo_2019.mp4",
-            ret = re.findall(r"https://assets\.metartnetwork\.[^\.]+\.mp4", mp4url)
+            ret = re.findall(
+                r"https://assets\.metartnetwork\.[^\.]+\.mp4", mp4url)
             for ret_one in ret:
                 if ret_one:
                     print("Video Url:\t", ret_one)
@@ -292,16 +293,17 @@ class SpiderMP4:
             mp42jpg = zip(img_name, ret)
             for ret_one in mp42jpg:
                 if ret_one:
-                    print("Slate Url:\t",ret_one[1])
+                    print("Slate Url:\t", ret_one[1])
                     imgname = ret_one[0][:-4]+".jpg"
                     # print(imgname)
                     self.downImage(self.path, imgname, ret_one[1])
 
+
 class SpiderArt:
-    def __init__(self, url, path, opendir_flag = False):
+    def __init__(self, url, path, opendir_flag=False):
         self.url = url
         self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36"
-        self.headers = { "Referer" : self.url, "User-Agent":self.user_agent}
+        self.headers = {"Referer": self.url, "User-Agent": self.user_agent}
         self.path = path
         self.titile = None
         self.err_list = list()
@@ -313,7 +315,8 @@ class SpiderArt:
 
     def downImages(self, urls):
         for url in urls:
-            img_name = str(self.titile) + "_" + str(urls.index(url)+1) + u".webp"
+            img_name = str(self.titile) + "_" + \
+                str(urls.index(url)+1) + u".webp"
             # print(img_name)
             imagePath = self.path+u"/"+img_name
             if not self.downImage(imagePath, url):
@@ -329,7 +332,7 @@ class SpiderArt:
                 # end = time.time()
                 # print("Run Time:%.2fs" % (end-start))
             except Exception as e:
-                print("Download[%s] FAILED: %s" %(img_basename,e))
+                print("Download[%s] FAILED: %s" % (img_basename, e))
                 return False
             else:
                 # print("Download SUCCEED![%.2fs]" % (end-start))
@@ -341,7 +344,8 @@ class SpiderArt:
 
     def set_tittle(self, str):
         # "og:title" content="一组精美性感的女性胶片摄影作品"
-        titile = re.search(r'\"og:title\" content=\"([^\"]+)\"', str, re.I).group(1)
+        titile = re.search(
+            r'\"og:title\" content=\"([^\"]+)\"', str, re.I).group(1)
         titile = re.sub('\W+', '-', titile)
         if titile[-1] == '-':
             titile = titile[0:-1]
@@ -353,16 +357,17 @@ class SpiderArt:
         return True
 
     def run(self):
-        request = urllib.request.Request(self.url, headers = self.headers)
+        request = urllib.request.Request(self.url, headers=self.headers)
         url_content = urllib.request.urlopen(self.url)
         response = urllib.request.urlopen(request)
         url_content = response.read().decode("UTF-8")
         self.set_tittle(url_content)
-        attr_file = self.path+ u'/' + self.titile+ u".txt"
+        attr_file = self.path + u'/' + self.titile + u".txt"
         if not os.path.exists(attr_file):
             with open(attr_file, "w", encoding='utf-8') as f:
                 f.write(url_content)
-        all_urls = re.findall(r'data-src=\"([^\"]+)\"', url_content,re.IGNORECASE)
+        all_urls = re.findall(
+            r'data-src=\"([^\"]+)\"', url_content, re.IGNORECASE)
         img_urls = list()
         for url in all_urls:
             # 不要gif
@@ -370,9 +375,9 @@ class SpiderArt:
                 # print(url)
                 img_urls.append(url)
         # 不要前三张,最后一张
-        #img_urls.pop(0)
-        #img_urls.pop(0)
-        #img_urls.pop(0)
+        # img_urls.pop(0)
+        # img_urls.pop(0)
+        # img_urls.pop(0)
         img_urls.pop()
         if img_urls:
             self.downImages(img_urls)
@@ -383,10 +388,10 @@ class SpiderArt:
 
 
 class SpiderTiktok:
-    def __init__(self, url, path, opendir_flag = False):
+    def __init__(self, url, path, opendir_flag=False):
         self.url = url
         self.user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.100 Safari/537.36"
-        self.headers = { "Referer" : self.url, "User-Agent":self.user_agent}
+        self.headers = {"Referer": self.url, "User-Agent": self.user_agent}
         self.path = path
         self.titile = None
         self.err_list = list()
@@ -405,7 +410,8 @@ class SpiderTiktok:
                 # end = time.time()
                 # print("Run Time:%.2fs" % (end-start))
             except Exception as e:
-                print("Download[%s] FAILED: %s\nurl:%s" %(file_basename,e, file_url))
+                print("Download[%s] FAILED: %s\nurl:%s" %
+                      (file_basename, e, file_url))
                 self.err_list.append(file_basename)
                 return False
             else:
@@ -420,9 +426,11 @@ class SpiderTiktok:
         # <p class="desc">#期待夏天 #魔鬼身材#你的女孩 好想和你一起过夏天啊～</p>
         # <div class="info"><p class="name nowrap">@猫宁 Baby</p></div>
         sep = '_'
-        titile = re.search(r'<p class=\"desc\">([^<]+)</p>', str, re.I).group(1)
+        titile = re.search(
+            r'<p class=\"desc\">([^<]+)</p>', str, re.I).group(1)
         titile = re.sub('\W+', sep, titile)
-        author = re.search(r'<p class=\"name nowrap\">@([^<]+)</p>', str, re.I).group(1)
+        author = re.search(
+            r'<p class=\"name nowrap\">@([^<]+)</p>', str, re.I).group(1)
         author = re.sub('\W+', sep, author)
         if titile[0] == sep:
             titile = titile[1:]
@@ -437,7 +445,7 @@ class SpiderTiktok:
         self.titile = author + '-' + titile
         # print(titile, author)
         if len(self.path) > 260:
-                raise RuntimeError
+            raise RuntimeError
         if not os.path.exists(self.path):
             os.makedirs(self.path)
             print("mkdir path: %s" % self.path)
@@ -445,44 +453,49 @@ class SpiderTiktok:
 
     def get_location(self, url):
         import requests
-        res = requests.post(url=url, headers=self.headers, allow_redirects=False)
+        res = requests.post(url=url, headers=self.headers,
+                            allow_redirects=False)
         url = res.headers['location']
         return url
 
     def run(self):
         self.url = self.get_location(self.url)
         # print(self.url)
-        request = urllib.request.Request(self.url, headers = self.headers)
+        request = urllib.request.Request(self.url, headers=self.headers)
         response = urllib.request.urlopen(request)
         url_content = response.read().decode("UTF-8")
         print(url_content)
         # soup = BeautifulSoup(url_content, "html.parser")
         # print("soup = %s" % soup)
         self.set_tittle(url_content)
-        if not os.path.exists(self.path+ u'/inspector/'):
-            os.makedirs(self.path+ u'/inspector/')
-        attr_file = self.path+ u'/inspector/' + self.titile+ u".txt"
+        if not os.path.exists(self.path + u'/inspector/'):
+            os.makedirs(self.path + u'/inspector/')
+        attr_file = self.path + u'/inspector/' + self.titile + u".txt"
         if not os.path.exists(attr_file):
             with open(attr_file, "w", encoding='utf-8') as f:
                 f.write(url_content)
 
-        video_url = re.search(r'playAddr: ?\"([^\"]+)\"', url_content,re.IGNORECASE).group(1)
-        cover_url = re.search(r'cover: ?\"([^\"]+)\"', url_content,re.IGNORECASE).group(1)
-        suffix = '.' + cover_url[-8:].split('.')[1] # .jpg/.png
+        video_url = re.search(
+            r'playAddr: ?\"([^\"]+)\"', url_content, re.IGNORECASE).group(1)
+        cover_url = re.search(
+            r'cover: ?\"([^\"]+)\"', url_content, re.IGNORECASE).group(1)
+        suffix = '.' + cover_url[-8:].split('.')[1]  # .jpg/.png
         if cover_url:
-            self.down_file(self.path+ u'/' + self.titile + suffix, cover_url)
+            self.down_file(self.path + u'/' + self.titile + suffix, cover_url)
         if video_url:
             video_url = self.get_location(video_url)
             # print(video_url)
-            self.down_file(self.path+ u'/' + self.titile + u'.mp4', video_url)
+            self.down_file(self.path + u'/' + self.titile + u'.mp4', video_url)
         if not self.err_list:
             print("All Succeed!!!\n")
             if self.opendir_flag:
                 self.opendir()
 
+
 def get_urls(tmp_str):
     # return set(re.findall(r'http[^\s]+', tmp_str, re.IGNORECASE))
     return set(re.findall(r'http[^\s]+', tmp_str, re.IGNORECASE))
+
 
 def change_drive(path):
     # path = u"D:\\HDC\\Pictures\\photo_of_the_day"
@@ -496,12 +509,13 @@ def change_drive(path):
         print("mkdir path: %s" % path)
     return path
 
-def main(url, black_list, white_list, opendir_flag = True):
+
+def main(url, black_list, white_list, opendir_flag=True):
     print("[{}]:\t{}".format(urls.index(url) + 1, url))
     if re.search(r"subscription/preview", url):
         path = u"D:/HDC/erotic/metart/"
         path = change_drive(path)
-        spider = Spider(url, path, black_list, white_list, need_open = True)
+        spider = Spider(url, path, black_list, white_list, need_open=True)
     elif re.search(r'weixin', url, re.I):
         path = u"D:/HDC/erotic/painting_art"
         path = change_drive(path)
@@ -534,10 +548,9 @@ def get_list_from_txt(path):
             f.write('')
         print("file doesn't exist: [{0}] .\nBut create.".format(path))
         return list()
-    
 
 
-def clean_txt(path = 'D:\\HDC\\erotic\\metart'):
+def clean_txt(path='D:\\HDC\\erotic\\metart'):
     print('clean start...')
     path = change_drive(path)
     dir = os.listdir(path)
@@ -549,16 +562,18 @@ def clean_txt(path = 'D:\\HDC\\erotic\\metart'):
                 os.remove(full_path)
     print('clean completed.')
 
+
 def take_over_browser():
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
     chrome_options = Options()
-    #"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" - -remote - debugging - port = 9222 - -user - data - dir = "D:\HDC\coding\edgedriver_win64\data-dir"
+    # "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" - -remote - debugging - port = 9222 - -user - data - dir = "D:\HDC\coding\edgedriver_win64\data-dir"
     chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
     chrome_driver = "D:\\HDC\\coding\\chromedriver_win32\\chromedriver.exe"
     driver = webdriver.Chrome(chrome_driver, options=chrome_options)
     print(driver.current_url)
     # driver.close()
+
 
 class DownThread(Thread):
     def __init__(self, url, black_list, white_list):  # 可以通过初始化来传递参数
@@ -570,19 +585,17 @@ class DownThread(Thread):
     def run(self):
         main(self._url, self._black_list, self._white_list)
 
-        
 
 if __name__ == '__main__':
-    
+
     # 是否使用多线程
     # use_thread = False
     use_thread = True
-    
-    
+
     need_clean = False
     if need_clean:
-        clean_txt(path = 'D:\\HDC\\erotic\\metart')
-    urls =       get_list_from_txt('./urls.txt')
+        clean_txt(path='D:\\HDC\\erotic\\metart')
+    urls = get_list_from_txt('./urls.txt')
     black_list = get_list_from_txt('./blacklist.txt')
     white_list = get_list_from_txt('./whitelist.txt')
     if use_thread:
@@ -590,7 +603,7 @@ if __name__ == '__main__':
         for url in urls:
             t = DownThread(url, black_list, white_list)
             threads.append(t)
-            t.start()  
+            t.start()
         for t in threads:
             t.join()
         print("全部结束.")
