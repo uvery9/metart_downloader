@@ -6,27 +6,28 @@ echo "********************copy files********************"
 copy urls.txt       Release
 copy whitelist.txt  Release
 copy blacklist.txt  Release
+copy MetArtDownloader.config.ini  Release
 
 echo "********************build start********************"
 
 pip install -r Requirements
-pyinstaller  -F -i metart.ico metart_downloader.py
-move /y dist\metart_downloader.exe Release\metart_downloader.exe
+pyinstaller  -F -i metart.ico MetArtDownloader.py
+move /y dist\MetArtDownloader.exe Release\MetArtDownloader.exe
 
-pyinstaller  -F -w -i metart.ico metart_downloader.py
-move /y dist\metart_downloader.exe Release\metart_downloader_noconsole.exe
+pyinstaller  -F -w -i metart.ico MetArtDownloader.py
+move /y dist\MetArtDownloader.exe Release\MetArtDownloaderSlient.exe
 
-echo "********************built********************"
+:: echo "********************built********************"
 
-::clean
+:: clean
 echo "********************cleaning temp files********************"
 rd /s /q build
 rd /s /q __pycache__
-del /q metart_downloader.spec
+del /q MetArtDownloader.spec
 rd /s /q dist
-
-"C:\Program Files\7-Zip\7z.exe" a metart_downloader.7z Release
-move /y metart_downloader.7z Release\metart_downloader.7z
+:: 
+:: "C:\Program Files\7-Zip\7z.exe" a MetArtDownloader.7z Release
+:: move /y MetArtDownloader.7z Release\MetArtDownloader.7z
 
 echo "********************succeed********************"
 

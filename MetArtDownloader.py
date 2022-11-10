@@ -5,6 +5,8 @@ import os
 import time
 import hashlib
 from threading import Thread
+from configparser import ConfigParser
+import pathlib
 # from bs4 import BeautifulSoup
 
 
@@ -16,6 +18,67 @@ def urllib_request_Request(url, port=23333):
     opener = urllib.request.build_opener(proxy_handler)
     # print(response.read())
     return opener.open(url)
+
+
+def get_config_file() -> str:
+    config_file = 'MetArtDownloader.config.ini'
+    app_dir = pyinstaller_getcwd()
+    return os.path.join(app_dir, config_file)
+
+
+def get_download_path_not_none(download_path: str, config_file: str):
+    if (not pathlib.Path(download_path).exists()):
+        if os.name == "nt":
+            download_path = f"{os.getenv('USERPROFILE')}\\Downloads"
+        else:  # PORT: For *Nix systems
+            download_path = f"{os.getenv('HOME')}/Downloads"
+        print(
+            f'\n!  WARNING: STRONGLY RECOMMENDED TO SPECIFY YOUR download_path in "{config_file}"\n    Now use "{download_path}"')
+        save_download_path_to_config(download_path, config_file)
+    print(f"> download_path = {download_path}")
+    return download_path
+
+
+def save_download_path_to_config(download_path: str, config_file: str):
+    config = ConfigParser()
+    if (os.path.exists(config_file)):
+        try:
+            with open(config_file) as f:
+                config.read_file(f)
+            config.set('Settings', 'download_path', download_path)
+            with open(config_file, 'w') as f:
+                config.write(f)
+        except Exception as e:
+            print(f"! {str(e)}")
+
+
+def get_download_path(config_file: str):
+    config = ConfigParser()
+    if (os.path.exists(config_file)):
+        try:
+            with open(config_file) as f:
+                config.read_file(f)
+                return get_download_path_not_none(config['Settings']['download_path'], config_file)
+        except:
+            return get_download_path_not_none("ERROR_OCCUR", config_file)
+    else:
+        config.add_section('Settings')
+        config['Settings']['download_path'] = "NOT_SET"
+        with open(config_file, 'w') as f:
+            config.write(f)
+    return get_download_path_not_none("NOT_SET", config_file)
+
+
+def pyinstaller_getcwd():
+    import os
+    import sys
+    # determine if the application is a frozen `.exe` (e.g. pyinstaller --onefile)
+    if getattr(sys, 'frozen', False):
+        application_path = os.path.dirname(sys.executable)
+    # or a script file (e.g. `.py` / `.pyw`)
+    elif __file__:
+        application_path = os.path.dirname(os.path.abspath(__file__))
+    return application_path
 
 
 class Spider:
@@ -33,10 +96,11 @@ class Spider:
         self._black_list = black_list
         self._white_list = white_list
         url_hash = hashlib.md5(self.url.encode("utf8")).hexdigest()
-        self.contents_file = self.path + url_hash + '.txt'
-        self.succeed_flag = self.path + url_hash + '-succeed.txt'
-        self.skip_flag = self.path + url_hash + '-skip.txt'
-
+        tmp_folder = os.path.join(self.path, '_tmp')
+        self.mkdir(tmp_folder)
+        self.contents_file = os.path.join(tmp_folder, url_hash + '.txt')
+        self.succeed_flag = os.path.join(tmp_folder, url_hash + '-succeed.txt')
+        self.skip_flag = os.path.join(tmp_folder, url_hash + '-skip.txt')
         # req.add_header("Host","blog.csdn.net")
         # req.add_header("Referer","http://blog.csdn.net/")
 
@@ -95,10 +159,7 @@ class Spider:
         return contents
 
     def mkdir(self, path):
-        if os.path.exists(path):
-            # print("path exists: %s" % path)
-            pass
-        else:
+        if not os.path.exists(path):
             os.makedirs(path)
             print("mkdir path: %s" % path)
 
@@ -109,32 +170,30 @@ class Spider:
                 self.time = self.downloader_process(imageUrl, imagePath)
                 # self.downloader(imageUrl, imagePath)
             except Exception as e:
-                print("Download FAILED: %s, %s" % (img_name, e))
+                print("Download FAILED!!: %s, %s" % (img_name, e))
                 os.remove(imagePath)
                 return False
             else:
-                print("Download SUCCEED!! %s" % img_name)
+                print("Download SUCCEED: %s" % img_name)
                 return True
         else:
             print("File EXISTS, skip: %s" % img_name.replace('/', '\\'))
             return True
 
     def succeed_action(self, skip=False):
+        if os.path.exists(self.contents_file):
+            os.remove(self.contents_file)
         if skip:
             user_defined_str = 'Skip the model'
-            if os.path.exists(self.contents_file):
-                os.remove(self.contents_file)
             print("%s:  %s!\n" % (user_defined_str, self.model))
             with open(self.skip_flag, 'w', encoding='utf-8') as f:
                 f.write("%s:  %s \nurl:\t%s " %
                         (user_defined_str, self.model, self.url))
         else:
-            dl_path = self.path + self.model
-            user_defined_str = 'All Download SUCCEED'
+            dl_path = os.path.join(self.path, self.model)
+            user_defined_str = 'All downloaded successfully'
             print("Path:  %s" % dl_path)
             print("%s:  %s!\n" % (user_defined_str, self.model))
-            if os.path.exists(self.contents_file):
-                os.remove(self.contents_file)
             if self.need_open:
                 self.opendir(dl_path)
             with open(self.succeed_flag, 'w', encoding='utf-8') as f:
@@ -159,7 +218,7 @@ class Spider:
             return True
         if self.model in self._white_list:
             self.model = "[" + self.model + "]"
-        dl_path = self.path + self.model
+        dl_path = os.path.join(self.path, self.model)
         self.mkdir(dl_path)
         count = 0
         for content in contents:
@@ -336,10 +395,10 @@ class SpiderArt:
                 return False
             else:
                 # print("Download SUCCEED![%.2fs]" % (end-start))
-                print("SUCCEED![%s]" % img_basename)
+                print("SUCCEED[%s]" % img_basename)
                 return True
         else:
-            print("SUCCEED! IMG exists,skip: %s" % imagePath)
+            print("SUCCEED, IMG exists,skip: %s" % imagePath)
             return True
 
     def set_tittle(self, str):
@@ -350,7 +409,7 @@ class SpiderArt:
         if titile[-1] == '-':
             titile = titile[0:-1]
         self.titile = titile
-        self.path += u"/" + self.titile
+        self.path = os.path.join(self.path, self.titile)
         if not os.path.exists(self.path):
             os.makedirs(self.path)
             print("mkdir path: %s" % self.path)
@@ -362,7 +421,7 @@ class SpiderArt:
         response = urllib.request.urlopen(request)
         url_content = response.read().decode("UTF-8")
         self.set_tittle(url_content)
-        attr_file = self.path + u'/' + self.titile + u".txt"
+        attr_file = os.path.join(self.path, self.titile + ".txt")
         if not os.path.exists(attr_file):
             with open(attr_file, "w", encoding='utf-8') as f:
                 f.write(url_content)
@@ -382,7 +441,7 @@ class SpiderArt:
         if img_urls:
             self.downImages(img_urls)
         if not self.err_list:
-            print("All Succeed!!!")
+            print("All Succeed.")
             if self.opendir_flag:
                 self.opendir()
 
@@ -416,10 +475,10 @@ class SpiderTiktok:
                 return False
             else:
                 # print("Download SUCCEED![%.2fs]" % (end-start))
-                print("SUCCEED![%s]" % file_basename)
+                print("SUCCEED[%s]" % file_basename)
                 return True
         else:
-            print("SUCCEED! IMG exists,skip: %s" % file_path)
+            print("SUCCEED, IMG exists,skip: %s" % file_path)
             return True
 
     def set_tittle(self, str):
@@ -468,9 +527,10 @@ class SpiderTiktok:
         # soup = BeautifulSoup(url_content, "html.parser")
         # print("soup = %s" % soup)
         self.set_tittle(url_content)
-        if not os.path.exists(self.path + u'/inspector/'):
-            os.makedirs(self.path + u'/inspector/')
-        attr_file = self.path + u'/inspector/' + self.titile + u".txt"
+        inspector_folder = os.path.join(self.path, 'inspector')
+        if not os.path.exists(inspector_folder):
+            os.makedirs(inspector_folder)
+        attr_file = os.path.join(inspector_folder, self.titile + u".txt")
         if not os.path.exists(attr_file):
             with open(attr_file, "w", encoding='utf-8') as f:
                 f.write(url_content)
@@ -481,13 +541,14 @@ class SpiderTiktok:
             r'cover: ?\"([^\"]+)\"', url_content, re.IGNORECASE).group(1)
         suffix = '.' + cover_url[-8:].split('.')[1]  # .jpg/.png
         if cover_url:
-            self.down_file(self.path + u'/' + self.titile + suffix, cover_url)
+            self.down_file(os.path.join(
+                self.path, self.titile + suffix), cover_url)
         if video_url:
             video_url = self.get_location(video_url)
-            # print(video_url)
-            self.down_file(self.path + u'/' + self.titile + u'.mp4', video_url)
+            mp4_file = os.path.join(self.path, self.titile + '.mp4')
+            self.down_file(mp4_file, video_url)
         if not self.err_list:
-            print("All Succeed!!!\n")
+            print("All Succeed!\n")
             if self.opendir_flag:
                 self.opendir()
 
@@ -497,37 +558,22 @@ def get_urls(tmp_str):
     return set(re.findall(r'http[^\s]+', tmp_str, re.IGNORECASE))
 
 
-def change_drive(path):
-    # path = u"D:\\HDC\\Pictures\\photo_of_the_day"
-    root = os.path.abspath(path)[:3]  # 获取当前目录所在硬盘的根目录
-    rest = os.path.abspath(path)[3:]
-    if not os.path.exists(root):
-        path = "C:\\" + rest
-        print("drive {} doesn't exist. \nUSE new path: {}".format(root, path))
-    if not os.path.exists(path):
-        os.makedirs(path)
-        print("mkdir path: %s" % path)
-    return path
-
-
-def main(url, black_list, white_list, opendir_flag=True):
-    print("[{}]:\t{}".format(urls.index(url) + 1, url))
+def main(url, black_list, white_list, download_path, opendir_flag=True):
+    print("[{}]:  {}".format(urls.index(url) + 1, url))
     if re.search(r"subscription/preview", url):
-        path = u"D:/HDC/erotic/metart/"
-        path = change_drive(path)
-        spider = Spider(url, path, black_list, white_list, need_open=True)
+        download_folder = os.path.join(download_path, "metart")
+        spider = Spider(url, download_folder, black_list,
+                        white_list, need_open=True)
     elif re.search(r'weixin', url, re.I):
-        path = u"D:/HDC/erotic/painting_art"
-        path = change_drive(path)
-        spider = SpiderArt(url, path, opendir_flag)
+        download_folder = os.path.join(download_path, "painting_art")
+        spider = SpiderArt(url, download_folder, opendir_flag)
     elif re.search(r'douyin', url, re.IGNORECASE) or re.search(r'xigua', url, re.I):
-        path = u"D:/HDC/tiktok"
-        path = change_drive(path)
-        spider = SpiderTiktok(url, path, opendir_flag)
+        download_folder = os.path.join(
+            download_path, "../douyin-xigua.download")
+        spider = SpiderTiktok(url, download_folder, opendir_flag)
     else:
-        path = u"D:/HDC/erotic/metart_mp4"
-        path = change_drive(path)
-        spider = SpiderMP4(url, path)
+        download_folder = os.path.join(download_path, "metart_mp4")
+        spider = SpiderMP4(url, download_folder)
     spider.run()
 
 
@@ -550,58 +596,67 @@ def get_list_from_txt(path):
         return list()
 
 
-def clean_txt(path='D:\\HDC\\erotic\\metart'):
+def clean_succeed_flag_txt():
     print('clean start...')
-    path = change_drive(path)
-    dir = os.listdir(path)
+    download_path = get_download_path(get_config_file())
+    download_folder = os.path.join(download_path, "metart")
+    dir = os.listdir(download_folder)
     for item in dir:
         if item.endswith("succeed.txt"):
-            full_path = path + '\\' + item
-            if os.path.exists(full_path):
-                print("delete file: {}".format(full_path))
-                os.remove(full_path)
+            succeed_txt = os.path.join(download_folder, item)
+            if os.path.exists(succeed_txt):
+                print("delete file: {}".format(succeed_txt))
+                os.remove(succeed_txt)
     print('clean completed.')
 
 
-def take_over_browser():
-    from selenium import webdriver
-    from selenium.webdriver.chrome.options import Options
-    chrome_options = Options()
-    # "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" - -remote - debugging - port = 9222 - -user - data - dir = "D:\HDC\coding\edgedriver_win64\data-dir"
-    chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
-    chrome_driver = "D:\\HDC\\coding\\chromedriver_win32\\chromedriver.exe"
-    driver = webdriver.Chrome(chrome_driver, options=chrome_options)
-    print(driver.current_url)
-    # driver.close()
+# def take_over_browser():
+#     from selenium import webdriver
+#     from selenium.webdriver.chrome.options import Options
+#     chrome_options = Options()
+#     # "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe" - -remote - debugging - port = 9222 - -user - data - dir = "D:\HDC\coding\edgedriver_win64\data-dir"
+#     chrome_options.add_experimental_option("debuggerAddress", "127.0.0.1:9222")
+#     chrome_driver = "D:\\HDC\\coding\\chromedriver_win32\\chromedriver.exe"
+#     driver = webdriver.Chrome(chrome_driver, options=chrome_options)
+#     print(driver.current_url)
+#     # driver.close()
 
 
 class DownThread(Thread):
-    def __init__(self, url, black_list, white_list):  # 可以通过初始化来传递参数
+    def __init__(self, url, black_list, white_list, path):  # 可以通过初始化来传递参数
         super(DownThread, self).__init__()
         self._url = url
         self._black_list = black_list
         self._white_list = white_list
+        self._path = path
 
     def run(self):
-        main(self._url, self._black_list, self._white_list)
+        main(self._url, self._black_list, self._white_list, self._path)
 
 
 if __name__ == '__main__':
 
     # 是否使用多线程
     # use_thread = False
+    config_file = get_config_file()
+    print("*** MetArtDownloader version 1.0.2 Copyright (c) 2022 Carlo R. All Rights Reserved. ***")
+    print("*** Contact us at uvery6@gmail.com ")
+    print("> START...")
+    print(f"> You could configure software in:\n    {config_file}")
+    download_path = get_download_path(config_file)
+    print("\n")
     use_thread = True
 
     need_clean = False
     if need_clean:
-        clean_txt(path='D:\\HDC\\erotic\\metart')
+        clean_succeed_flag_txt()
     urls = get_list_from_txt('./urls.txt')
     black_list = get_list_from_txt('./blacklist.txt')
     white_list = get_list_from_txt('./whitelist.txt')
     if use_thread:
         threads = list()
         for url in urls:
-            t = DownThread(url, black_list, white_list)
+            t = DownThread(url, black_list, white_list, download_path)
             threads.append(t)
             t.start()
         for t in threads:
@@ -609,4 +664,4 @@ if __name__ == '__main__':
         print("全部结束.")
     else:
         for url in urls:
-            main(url, black_list, white_list)
+            main(url, black_list, white_list, download_path)
